@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 
 namespace helixdb::storage {
+    /* Implementations of the pager.hpp methods */
     Pager::Pager (const std::string& file_path) : file_descriptor_(-1), next_page_id_(0) {
         file_descriptor_ = ::open (
             file_path.c_str(),
@@ -48,6 +49,8 @@ namespace helixdb::storage {
         if (bytes_read == -1) {
             throw std::runtime_error("Pager: failed to read page: " + std::string(std::strerror(errno)));
         }
+        // If fewer than PAGE_SIZE bytes were read then remaining bytes are zeroed
+        if (bytes_read < static_cast<ssize_t>(PAGE_SIZE)) std::memset(page->data() + bytes_read, 0, PAGE_SIZE - bytes_read);
         page_cache_[page_id] = std::move(page);
         return *(page_cache_[page_id]);
     }
