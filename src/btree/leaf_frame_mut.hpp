@@ -1,12 +1,13 @@
 #pragma once
 
 #include <span>
+#include <optional>
 
 #include "storage/page.hpp"
 #include "btree/leaf_frame.hpp"
 
 namespace helixdb::btree {
-    /* LeafFrameMut Class 
+    /* LeafFrameMut Class
        Mutable MVP view over B-Tree leaf page
        For now no splitting, no balancing */
     class LeafFrameMut {
@@ -27,20 +28,16 @@ namespace helixdb::btree {
             page_.mark_dirty();
         }
 
-        /* Find key using linear search for now */
+        /* Find key using binary search */
         bool find (uint64_t key, std::span<const std::byte>& out_values) {
             LeafFrame view(page_);
-            uint16_t count = view.cell_count();
-            for (uint16_t i = 0; i < count; ++i) {
-                if (view.key_at(i) == key) {
-                    out_values = {
-                        view.value_at(i),
-                        view.value_size_at(i)
-                    };
-                    return true;
-                }
-            }
-            return false;
+            auto index = view.find_key(key);
+            if (!index.has_value()) return false;
+            out_values = {
+                view.value_at(*index),
+                view.value_size_at(*index)
+            };
+            return true;
         }
 
         /* Insert key-value */
@@ -58,7 +55,7 @@ namespace helixdb::btree {
             uint16_t free_space = view.free_space_offset();
             uint16_t next_ptr_space_end = LEAF_CELL_PTR_ARRAY_OFFSET + (count + 1) * LEAF_CELL_PTR_SIZE;
 
-            /* Check space 
+            /* Check space
                If page full, no splitting for now */
             if (free_space < next_ptr_space_end + cell_size) return false;
 

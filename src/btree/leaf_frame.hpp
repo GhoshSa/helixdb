@@ -56,6 +56,20 @@ namespace helixdb::btree {
         const std::byte* value_at (uint16_t index) const {
             return page_.data() + cell_offset(index) + LEAF_CELL_HEADER_SIZE;
         }
+
+        /* Binary search helper */
+        std::optional<uint16_t> find_key (uint64_t key) const {
+            uint16_t left = 0;
+            uint16_t right = cell_count();
+            while (left < right) {
+                uint16_t mid = left + (right - left) / 2;
+                uint64_t mid_key = key_at(mid);
+                if (key == mid_key) return mid;
+                else if (key < mid_key) right = mid;
+                else left = mid + 1;
+            }
+            return std::nullopt;
+        }
     private:
         const storage::Page& page_;
     };
