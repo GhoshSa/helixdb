@@ -1,90 +1,96 @@
-#include "pager.hpp"
-
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdexcept>
-#include <cstring>
-#include <sys/stat.h>
+#include "helixdb/storage/pager.hpp"
 
 namespace helixdb::storage {
-    /* Implementations of the pager.hpp methods */
-    Pager::Pager (const std::string& file_path) : file_descriptor_(-1), next_page_id_(0) {
-        file_descriptor_ = ::open (
-            file_path.c_str(),
-            O_RDWR | O_CREAT,
-            S_IRUSR | S_IWUSR
-        );
-        if (file_descriptor_ == -1) {
-            throw std::runtime_error("Failed to open or create file: " + std::string(std::strerror(errno)));
-        }
-        struct stat st {};
-        if (::fstat(file_descriptor_, &st) == -1) {
-            ::close(file_descriptor_);
-            throw std::runtime_error("Pager: failed to stat file: " + std::string(std::strerror(errno)));
-        }
-        if (st.st_size % PAGE_SIZE != 0) {
-            ::close(file_descriptor_);
-            throw std::runtime_error("Pager: database file is corrupted.");
-        }
-        next_page_id_ = static_cast<PageId>(st.st_size / PAGE_SIZE);
-    }
+    Pager::Pager(const std::string& path) : device_(path) {
+        page_count_ = static_cast<uint32_t>(device_.block_count());
+        if (page_count_ == 0) {
+            auto header_page = std::make_unique<Page>(0);
 
-    Pager::~Pager () {
-        try {
+            FileHeader header {};
+            init_header(header);
+
+            std::memcpy(header_page->data(), &header, sizeof(FileHeader));
+            header_page->mark_dirty();
+
+            cache_[0] = std::move(header_page);
+            page_count_ = 1;
             flush_all();
-        } catch (...) {}
-        if (file_descriptor_ != -1) {
-            ::close(file_descriptor_);
+        } else {
+            auto header_page = std::make_unique<Page>(0);
+            device_.read(0, header_page->data());
+
+            FileHeader header {};
+            std::memcpy(&header, header_page->data(), sizeof(FileHeader));
+            validate_header(header);
+
+            page_count_ = header.page_count;
+            cache_[0] = std::move(header_page);
         }
     }
 
-    Page& Pager::get_page (PageId page_id) {
-        auto it = page_cache_.find(page_id);
-        if (it != page_cache_.end()) {
-            return *(it->second);
-        }
-        auto page = std::make_unique<Page>();
-        off_t offset = static_cast<off_t>(page_id * PAGE_SIZE);
-        ssize_t bytes_read = ::pread(file_descriptor_, page->data(), PAGE_SIZE, offset);
-        if (bytes_read == -1) {
-            throw std::runtime_error("Pager: failed to read page: " + std::string(std::strerror(errno)));
-        }
-        // If fewer than PAGE_SIZE bytes were read then remaining bytes are zeroed
-        if (bytes_read < static_cast<ssize_t>(PAGE_SIZE)) std::memset(page->data() + bytes_read, 0, PAGE_SIZE - bytes_read);
-        page_cache_[page_id] = std::move(page);
-        return *(page_cache_[page_id]);
+    Pager::~Pager() {
+        flush_all();
     }
 
-    PageId Pager::allocate_page () {
-        PageId new_page_id = next_page_id_++;
-        auto page = std::make_unique<Page>();
+    Page& Pager::get_page(uint32_t page_id) {
+        if (page_id >= page_count_) throw std::runtime_error("invalid page id");
+
+        if (!cache_.contains(page_id)) load_page(page_id);
+        Page& page = *cache_.at(page_id);
+        // page.pin();
+        return page;
+    }
+
+    void Pager::load_page(uint32_t page_id) {
+        auto page = std::make_unique<Page>(page_id);
+
+        device_.read(page_id, page->data());
+        cache_[page_id] = std::move(page);
+    }
+
+    uint32_t Pager::allocate_page() {
+        uint32_t new_id = page_count_++;
+
+        auto page = std::make_unique<Page>(new_id);
         page->mark_dirty();
-        page_cache_[new_page_id] = std::move(page);
-        return new_page_id;
+        cache_[new_id] = std::move(page);
+
+        auto* header = reinterpret_cast<FileHeader*>(cache_.at(0)->data());
+        header->page_count = page_count_;
+        cache_.at(0)->mark_dirty();
+
+        return new_id;
     }
 
-    void Pager::flush_page (PageId page_id) {
-        auto it = page_cache_.find(page_id);
-        if (it == page_cache_.end()) return;
-        Page& page = *(it->second);
+    void Pager::flush_page(uint32_t page_id) {
+        if (!cache_.contains(page_id)) return;
+
+        Page& page = *cache_.at(page_id);
         if (!page.is_dirty()) return;
-        off_t offset = static_cast<off_t>(page_id * PAGE_SIZE);
-        ssize_t bytes_written = ::pwrite(file_descriptor_, page.data(), PAGE_SIZE, offset);
-        if (bytes_written != static_cast<ssize_t>(PAGE_SIZE)) {
-            throw std::runtime_error("Pager: failed to write page: " + std::string(std::strerror(errno)));
-        }
+
+        device_.write(page_id, page.data());
         page.clear_dirty();
     }
 
-    void Pager::flush_all () {
-        for (auto& [page_id, page] : page_cache_) {
-            if (page->is_dirty()) {
-                flush_page(page_id);
+    void Pager::flush_all() {
+        for (auto& [id, page_ptr] : cache_) {
+            if (page_ptr->is_dirty()) {
+                device_.write(id, page_ptr->data());
+                page_ptr->clear_dirty();
             }
         }
+
+        device_.flush();
     }
 
-    std::size_t Pager::page_count () const {
-        return next_page_id_;
+    uint32_t Pager::root_page_id() const {
+        const auto* header = reinterpret_cast<const FileHeader*>(cache_.at(0)->data());
+        return header->root_page_id;
+    }
+
+    void Pager::set_root_page(uint32_t page_id) {
+        auto* header = reinterpret_cast<FileHeader*>(cache_.at(0)->data());
+        header->root_page_id = page_id;
+        cache_.at(0)->mark_dirty();
     }
 }
