@@ -7,15 +7,13 @@
 #include "helixdb/storage/page.hpp"
 #include "helixdb/storage/block_device.hpp"
 #include "helixdb/storage/file_header.hpp"
+#include "helixdb/wal/wal_manager.hpp"
 
 namespace helixdb::storage {
     class Pager {
     public:
         explicit Pager(const std::string& path);
         ~Pager();
-
-        // Pager(const Pager&) = delete;
-        // Pager& operator = (const Pager&) = delete;
 
         Page& get_page(uint32_t page_id);
 
@@ -28,11 +26,14 @@ namespace helixdb::storage {
 
         uint32_t root_page_id() const;
         void set_root_page(uint32_t id);
+
+        // wal::WalManager& wal() { return wal_; }
     
     private:
         BlockDevice device_;
         std::unordered_map<uint32_t, std::unique_ptr<Page>> cache_;
         uint32_t page_count_;
         void load_page(uint32_t page_id);
+        wal::WalManager wal_;
     };
 }

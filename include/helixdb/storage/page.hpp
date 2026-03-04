@@ -4,9 +4,9 @@
 #include <array>
 #include <stdexcept>
 
-namespace helixdb::storage {
-    constexpr std::size_t PAGE_SIZE = 4096;
+#include "helixdb/storage/block_constants.hpp"
 
+namespace helixdb::storage {
     class Page {
     public:
         explicit Page(uint32_t page_id) : page_id_(page_id) {}
