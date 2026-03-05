@@ -26,12 +26,12 @@ namespace helixdb::storage {
         void clear_dirty() noexcept { dirty_ = false; }
         bool is_dirty() const noexcept { return dirty_; }
 
-        void pin() noexcept { ++pin_count_; }
-        void unpin() {
-            if (pin_count_ == 0) throw std::logic_error("Page::unpin() called with pin_count_ == 0");
-            --pin_count_;
-        }
-        bool is_pinned() const noexcept { return pin_count_ > 0; }
+        // void pin() noexcept { ++pin_count_; }
+        // void unpin() {
+        //     if (pin_count_ == 0) throw std::logic_error("Page::unpin() called with pin_count_ == 0");
+        //     --pin_count_;
+        // }
+        // bool is_pinned() const noexcept { return pin_count_ > 0; }
         // uint32_t pin_count() { return pin_count_; }
     
     private:

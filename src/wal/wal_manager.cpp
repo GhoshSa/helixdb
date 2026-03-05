@@ -38,7 +38,7 @@ namespace helixdb::wal {
 
     void WalManager::recover(storage::BlockDevice &device) {
         lseek(fd_, 0, SEEK_SET);
-
+        
         while (true) {
             uint32_t page_id;
             uint32_t size;
