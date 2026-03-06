@@ -9,7 +9,7 @@ project(
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(helixdb_storage STATIC src/storage/block_device.cpp src/storage/pager.cpp src/wal/wal_manager.cpp)
+add_library(helixdb_storage STATIC src/storage/block_device.cpp src/storage/pager.cpp src/wal/wal_manager.cpp src/btree/bplushtree.cpp)
 
 target_include_directories(helixdb_storage PUBLIC ${PROJECT_SOURCE_DIR}/include)
 

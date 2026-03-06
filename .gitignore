@@ -2,5 +2,7 @@
 /.cache/
 /compile_commands.json
 
+.idea/
+
 /.vscode/
 /c_cpp_properties.json

@@ -40,7 +40,6 @@ namespace helixdb::bplushtree {
                 if (key < e[i].key) return c;
                 c = e[i].key;
             }
-
             return c;
         }
 

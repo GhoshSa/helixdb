@@ -18,6 +18,7 @@ namespace helixdb::storage {
         Page& get_page(uint32_t page_id);
 
         uint32_t allocate_page();
+        void free_page(uint32_t page_id);
 
         void flush_page(uint32_t page_id);
         void flush_all();

@@ -15,6 +15,7 @@ namespace helixdb::storage {
         uint32_t page_size;
         uint32_t page_count;
         uint32_t root_page_id;
+        uint32_t free_list_head;
     };
 
     inline void init_header(FileHeader& header) {
@@ -23,6 +24,7 @@ namespace helixdb::storage {
         header.page_size = PAGE_SIZE;
         header.page_count = 1;
         header.root_page_id = 0;
+        header.free_list_head = 0;
     }
 
     inline void validate_header(const FileHeader& header) {
