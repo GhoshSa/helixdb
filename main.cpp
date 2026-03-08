@@ -1,22 +1,36 @@
+#include "helixdb/storage/pager.hpp"
+#include "helixdb/schema/schema_manager.hpp"
+
 #include <iostream>
 
-#include "helixdb/storage/pager.hpp"
+using namespace helixdb;
 
 int main() {
-    try {
-        helixdb::storage::Pager pager("main.db");
+    storage::Pager pager("test.db");
 
-        std::cout << "Page count: " << pager.page_count() << std::endl;
+    schema::SchemaManager manager(pager);
 
-        uint32_t id = pager.allocate_page();
-        std::cout << "Allocated page: " << id << std::endl;
+    schema::TableSchema users {
+        "users",
+        {
+            {"id", schema::ColumnType::INT},
+            {"name", schema::ColumnType::TEXT}
+        }
+    };
 
-        pager.flush_all();
+    manager.create_table(users);
 
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
-    }
+    auto& table = manager.get_table("users");
+
+    table.insert(1, {"1", "Alice"});
+    table.insert(2, {"2", "Bob"});
+    table.insert(3, {"3", "Charlie"});
+
+    std::cout << "Query:\n";
+
+    table.select(1);
+    table.select(2);
+    table.select(3);
 
     return 0;
 }

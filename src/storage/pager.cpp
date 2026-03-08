@@ -2,34 +2,6 @@
 
 namespace helixdb::storage {
     Pager::Pager(const std::string& path) : device_(path), wal_(path) {
-        // wal_.recover(device_);
-        // wal_.flush();
-
-        // page_count_ = static_cast<uint32_t>(device_.block_count());
-        // if (page_count_ == 0) {
-        //     auto header_page = std::make_unique<Page>(0);
-
-        //     FileHeader header {};
-        //     init_header(header);
-
-        //     std::memcpy(header_page->data(), &header, sizeof(FileHeader));
-        //     header_page->mark_dirty();
-
-        //     cache_[0] = std::move(header_page);
-        //     page_count_ = 1;
-        //     flush_all();
-        // } else {
-        //     auto header_page = std::make_unique<Page>(0);
-        //     device_.read(0, header_page->data());
-
-        //     FileHeader header {};
-        //     std::memcpy(&header, header_page->data(), sizeof(FileHeader));
-        //     validate_header(header);
-
-        //     page_count_ = header.page_count;
-        //     cache_[0] = std::move(header_page);
-        // }
-
         page_count_ = static_cast<uint32_t>(device_.block_count());
         if (page_count_ == 0) {
             auto header_page = std::make_unique<Page>(0);

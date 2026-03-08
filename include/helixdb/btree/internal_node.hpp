@@ -4,107 +4,29 @@
 #include "helixdb/btree/node_layout.hpp"
 
 namespace helixdb::bplushtree {
-    struct InternalEntry {
-        uint64_t key;
-        uint32_t child;
-    };
-
     class InternalNode {
     public:
-        explicit InternalNode(storage::Page& page) : page_(page) {}
+        explicit InternalNode(storage::Page& page);
 
-        void _init_() {
-            auto h = header();
-            h->type = NodeType::INTERNAL;
-            h->key_count = 0;
-            h->parent = 0;
+        static void _init_(storage::Page& page);
 
-            *child0() = 0;
+        void set_left_child(uint32_t child);
 
-            page_.mark_dirty();
-        }
+        uint32_t find_child(uint64_t key);
 
-        uint16_t key_count() const {
-            return header()->key_count;
-        }
+        bool insert(uint64_t key, uint32_t right_child);
 
-        uint32_t capacity() const {
-            return (storage::PAGE_SIZE - sizeof(NodeHeader) - sizeof(uint32_t)) / sizeof(InternalEntry);
-        }
-
-        bool find_child(uint64_t key) {
-            uint32_t c = *child0();
-            auto* e = entries();
-
-            for (uint16_t i = 0; i < key_count(); ++i) {
-                if (key < e[i].key) return c;
-                c = e[i].key;
-            }
-            return c;
-        }
-
-        bool insert(uint64_t key, uint32_t child) {
-            auto* e = entries();
-
-            if (key_count() >= capacity()) return false;
-
-            int pos = 0;
-            while (pos < key_count() && e[pos].key < key) pos++;
-
-            for (int i = key_count(); i > pos; --i) e[i] = e[i - 1];
-
-            e[pos].key = key;
-            e[pos].child = child;
-
-            header()->key_count++;
-
-            page_.mark_dirty();
-
-            return true;
-        }
-
-        uint64_t split(storage::Page& new_page) {
-            InternalNode right(new_page);
-            right._init_();
-
-            auto* left_entries = entries();
-            auto* right_entries = right.entries();
-
-            uint16_t total = key_count();
-            uint16_t mid = total / 2;
-
-            uint64_t separator = left_entries[mid].key;
-
-            *right.child0() = left_entries[mid].child;
-
-            for (uint16_t i = mid + 1; i < total; i++) right_entries[i - (mid + 1)] = left_entries[i];
-            
-            right.header()->key_count = total - mid - 1;
-            header()->key_count = mid;
-
-            page_.mark_dirty();
-            new_page.mark_dirty();
-
-            return separator;
-        }
+        uint64_t split(storage::Page& new_page);
     
     private:
         storage::Page& page_;
+        NodeHeader* header_;
 
-        NodeHeader* header() {
-            return reinterpret_cast<NodeHeader*>(page_.data());
-        }
+        static constexpr uint32_t MAX_KEYS = 128;
 
-        const NodeHeader* header() const {
-            return reinterpret_cast<const NodeHeader*>(page_.data());
-        }
+        static constexpr uint32_t HEADER_SIZE = sizeof(NodeHeader);
 
-        uint32_t* child0() {
-            return reinterpret_cast<uint32_t*>(page_.data() + sizeof(NodeHeader));
-        }
-
-        InternalEntry* entries() {
-            return reinterpret_cast<InternalEntry*>(page_.data() + sizeof(NodeHeader) + sizeof(uint32_t));
-        }
+        uint64_t* keys();
+        uint32_t* children();
     };
 }

@@ -4,8 +4,8 @@
 
 namespace helixdb::bplushtree{
     enum class NodeType : uint8_t {
-        LEAF = 1,
-        INTERNAL = 2
+        INTERNAL = 1,
+        LEAF = 2
     };
 
     struct NodeHeader {

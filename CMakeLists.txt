@@ -9,13 +9,21 @@ project(
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_library(helixdb_storage STATIC src/storage/block_device.cpp src/storage/pager.cpp src/wal/wal_manager.cpp src/btree/bplushtree.cpp)
+set(STORAGE_SOURCES src/storage/block_device.cpp src/storage/pager.cpp)
 
-target_include_directories(helixdb_storage PUBLIC ${PROJECT_SOURCE_DIR}/include)
+set(WAL_SOURCES src/wal/wal_manager.cpp)
+
+set(BTREE_SOURCES src/btree/bplushtree.cpp src/btree/leaf_node.cpp src/btree/internal_node.cpp)
+
+set(SCHEMA_SOURCES src/schema/row_serializer.cpp src/schema/table.cpp src/schema/catalog.cpp src/schema/schema_manager.cpp)
+
+add_library(helixdb ${STORAGE_SOURCES} ${WAL_SOURCES} ${BTREE_SOURCES} ${SCHEMA_SOURCES})
+
+target_include_directories(helixdb PUBLIC include)
 
 add_executable(helixdb_main main.cpp)
 
-target_link_libraries(helixdb_main PRIVATE helixdb_storage)
+target_link_libraries(helixdb_main PRIVATE helixdb)
 
 # add_executable(test_wal_basic tests/test_wal_basic.cpp)
 

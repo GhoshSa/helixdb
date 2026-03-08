@@ -3,6 +3,8 @@
 /compile_commands.json
 
 .idea/
+*.db
+*.db.wal
 
 /.vscode/
 /c_cpp_properties.json
