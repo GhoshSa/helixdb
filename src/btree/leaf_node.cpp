@@ -66,6 +66,8 @@ namespace helixdb::bplushtree {
         uint32_t mid = header_->key_count / 2;
 
         auto* new_header = reinterpret_cast<NodeHeader*>(new_page.data());
+        new_header->parent = header_->parent;
+
         auto* new_keys = reinterpret_cast<uint64_t*>(new_page.data() + HEADER_SIZE);
         auto* new_values = new_page.data() + HEADER_SIZE + KEY_ARRAY_SIZE;
 
@@ -76,6 +78,9 @@ namespace helixdb::bplushtree {
         }
 
         header_->key_count = mid;
+
+        page_.mark_dirty();
+        new_page.mark_dirty();
 
         return new_keys[0];
     }

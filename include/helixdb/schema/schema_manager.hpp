@@ -10,7 +10,6 @@ namespace helixdb::schema {
         explicit SchemaManager(storage::Pager& pager);
 
         void create_table(TableSchema schema);
-
         Table& get_table(const std::string& name);
 
     private:

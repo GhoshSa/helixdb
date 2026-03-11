@@ -6,5 +6,7 @@
 *.db
 *.db.wal
 
+cmake-build-debug
+
 /.vscode/
 /c_cpp_properties.json

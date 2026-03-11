@@ -57,18 +57,24 @@ namespace helixdb::bplushtree {
         _init_(new_page);
 
         auto* new_header = reinterpret_cast<NodeHeader*>(new_page.data());
+        auto* new_keys = reinterpret_cast<uint64_t*>(new_page.data() + HEADER_SIZE);
+        auto* new_children = reinterpret_cast<uint32_t*>(new_page.data() + HEADER_SIZE + sizeof(uint64_t) * MAX_KEYS);
 
         uint32_t mid = header_->key_count / 2;
         uint64_t seperator = keys()[mid];
 
-        auto* new_keys = reinterpret_cast<uint64_t*>(new_page.data() + HEADER_SIZE);
+        new_children[0] = children()[mid + 1];
 
         for (uint32_t i = mid + 1; i < header_->key_count; ++i) {
             uint32_t index = new_header->key_count++;
             new_keys[index] = keys()[i];
+            new_children[index + 1] = children()[i + 1];
         }
 
         header_->key_count = mid;
+
+        page_.mark_dirty();
+        new_page.mark_dirty();
 
         return seperator;
     }
