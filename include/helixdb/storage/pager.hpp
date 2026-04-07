@@ -20,21 +20,21 @@ namespace helixdb::storage {
         uint32_t allocate_page();
         void free_page(uint32_t page_id);
 
+        void mark_page_dirty(uint32_t page_id);
+
         void flush_page(uint32_t page_id);
         void flush_all();
 
-        uint32_t page_count() const noexcept { return page_count_; }
-
         uint32_t root_page_id() const;
         void set_root_page(uint32_t id);
-
-        // wal::WalManager& wal() { return wal_; }
     
     private:
         BlockDevice device_;
+        wal::WalManager wal_;
+
         std::unordered_map<uint32_t, std::unique_ptr<Page>> cache_;
         uint32_t page_count_;
+
         void load_page(uint32_t page_id);
-        wal::WalManager wal_;
     };
 }

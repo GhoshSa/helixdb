@@ -10,16 +10,16 @@ namespace helixdb::storage {
             init_header(header);
 
             std::memcpy(header_page->data(), &header, sizeof(FileHeader));
-            header_page->mark_dirty();
 
             cache_[0] = std::move(header_page);
             page_count_ = 1;
+
+            mark_page_dirty(0);
 
             flush_all();
         }
 
         wal_.recover(device_);
-        wal_.truncate();
 
         auto header_page = std::make_unique<Page>(0);
         device_.read(0, header_page->data());
@@ -29,6 +29,7 @@ namespace helixdb::storage {
         validate_header(header);
         
         page_count_ = header.page_count;
+        
         cache_[0] = std::move(header_page);
     }
 
@@ -52,31 +53,21 @@ namespace helixdb::storage {
     }
 
     uint32_t Pager::allocate_page() {
-        auto* header = reinterpret_cast<FileHeader*>(cache_.at(0)->data());
+        auto* header = reinterpret_cast<FileHeader*>(get_page(0).data());
+        uint32_t new_id;
 
         if (header->free_list_head != 0) {
             uint32_t page_id = header->free_list_head;
             Page& page = get_page(page_id);
-
-            uint32_t* next = reinterpret_cast<uint32_t*>(page.data());
-            header->free_list_head = *next;
-
-            cache_.at(0)->mark_dirty();
-
-            return page_id;
+            header->free_list_head = *reinterpret_cast<uint32_t*>(page.data());
+        } else {
+            new_id = page_count_++;
+            auto page = std::make_unique<Page>(new_id);
+            cache_[new_id] = std::move(page);
         }
 
-        uint32_t new_id = page_count_++;
-
-        auto page = std::make_unique<Page>(new_id);
-        page->mark_dirty();
-
-        cache_[new_id] = std::move(page);
-
-        auto* headr = reinterpret_cast<FileHeader*>(cache_.at(0)->data());
-        headr->page_count = page_count_;
-
-        cache_.at(0)->mark_dirty();
+        header->page_count = page_count_;
+        mark_page_dirty(0);
 
         return new_id;
     }
@@ -84,18 +75,26 @@ namespace helixdb::storage {
     void Pager::free_page(uint32_t page_id) {
         if (page_id == 0) throw std::runtime_error("cannot free header page");
 
-        auto* header = reinterpret_cast<FileHeader*>(cache_.at(0)->data());
-
+        auto* header = reinterpret_cast<FileHeader*>(get_page(0).data());
         Page& page = get_page(page_id);
 
         uint32_t* next = reinterpret_cast<uint32_t*>(page.data());
         *next = header->free_list_head;
-
-        page.mark_dirty();
-
         header->free_list_head = page_id;
 
-        cache_.at(0)->mark_dirty();
+        mark_page_dirty(page_id);
+        mark_page_dirty(0);
+    }
+
+    void Pager::mark_page_dirty(uint32_t page_id) {
+        auto p = cache_.find(page_id);
+        if (p == cache_.end()) return;
+
+        Page& page = *p->second;
+
+        wal_.append(page_id, page.data());
+
+        page.mark_dirty();
     }
 
     void Pager::flush_page(uint32_t page_id) {
@@ -103,9 +102,6 @@ namespace helixdb::storage {
 
         Page& page = *cache_.at(page_id);
         if (!page.is_dirty()) return;
-
-        wal_.append(page_id, page.data());
-        wal_.flush();
 
         device_.write(page_id, page.data());
         device_.flush();
@@ -115,10 +111,10 @@ namespace helixdb::storage {
 
     void Pager::flush_all() {
         for (auto& [id, page_ptr] : cache_) {
-            if (page_ptr->is_dirty()) {
-                flush_page(id);
-            }
+            if (page_ptr->is_dirty()) flush_page(id);
         }
+
+        wal_.truncate();
     }
 
     uint32_t Pager::root_page_id() const {
@@ -129,6 +125,6 @@ namespace helixdb::storage {
     void Pager::set_root_page(uint32_t page_id) {
         auto* header = reinterpret_cast<FileHeader*>(cache_.at(0)->data());
         header->root_page_id = page_id;
-        cache_.at(0)->mark_dirty();
+        mark_page_dirty(0);
     }
 }
