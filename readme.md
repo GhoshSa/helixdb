@@ -55,17 +55,6 @@ cmake --build build
 
 ---
 
-## ▶️ Demo CLI
-
-The repository includes a small interactive demo in `main.cpp`.
-Use the following commands:
-
-- `insert <key> <value>`
-- `find <key>`
-- `exit`
-
----
-
 ## 🧠 Internal Design
 
 - `storage/BlockDevice` performs raw file I/O using 4KB blocks.
@@ -98,7 +87,6 @@ Current implementation is intentionally minimal:
 - Fixed key type: `uint64_t`
 - Fixed value type: `uint32_t`
 - No SQL or schema support
-- No cache eviction policy
 - No multi-operation transactions
 - WAL overhead
 
