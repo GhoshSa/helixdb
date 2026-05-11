@@ -42,19 +42,19 @@ namespace helixdb::storage {
             throw std::runtime_error("invalid page id");
         }
 
-        auto it = cache_.find(page_id);
-        if (it == cache_.end()) {
+        auto iter = cache_.find(page_id);
+        if (iter == cache_.end()) {
             return loadPage(page_id);
         }
-        return *it->second;
+        return *iter->second;
     }
 
     auto Pager::loadPage(uint32_t page_id) -> Page& {
         auto page = std::make_unique<Page>(page_id);
 
         device_.read(page_id, page->data());
-        auto [it, inserted] = cache_.try_emplace(page_id, std::move(page));
-        return *it->second;
+        auto [iter, inserted] = cache_.try_emplace(page_id, std::move(page));
+        return *iter->second;
     }
 
     auto Pager::allocatePage() -> uint32_t {

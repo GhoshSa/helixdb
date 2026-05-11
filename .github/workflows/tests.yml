@@ -24,6 +24,18 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
+    - name: Set Compiler Environment (Linux/macOS)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        if [ "${{ matrix.compiler }}" = "gcc" ]; then
+          echo "CC=gcc" >> $GITHUB_ENV
+          echo "CXX=g++" >> $GITHUB_ENV
+        else
+          echo "CC=clang" >> $GITHUB_ENV
+          echo "CXX=clang++" >> $GITHUB_ENV
+        fi
+
     - name: Install Dependencies (Linux)
       if: runner.os == 'Linux'
       run: |
@@ -54,8 +66,7 @@ jobs:
     - name: Run Clang-Tidy (Linux Only)
       if: runner.os == 'Linux'
       run: |
-        run-clang-tidy -p build "src/.*\.cpp"
+        run-clang-tidy -p build "src/.*\.cpp|tests/.*\.cpp|main\.cpp"
 
     - name: Run Tests
-      working-directory: build
-      run: ctest -C Debug --output-on-failure
+      run: ctest --test-dir build -C Debug --output-on-failure

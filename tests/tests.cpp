@@ -11,27 +11,30 @@
 using namespace helixdb;
 
 class HelixDBAcidTest : public ::testing::Test {
+private:
+    const std::string db_path_ = "acid_test.db";
+    const std::string wal_path_ = "acid_test.db.wal";
+
 protected:
-    const std::string db_path = "acid_test.db";
-    const std::string wal_path = "acid_test.db.wal";
+    [[nodiscard]] auto dbPath() const -> const std::string& { return db_path_; }
 
     void SetUp() override {
-        CleanFiles();
+        cleanFiles();
     }
-
+    
     void TearDown() override {
-        CleanFiles();
+        cleanFiles();
     }
 
-    void CleanFiles() {
-        std::filesystem::remove(db_path);
-        std::filesystem::remove(wal_path);
+    void cleanFiles() {
+        std::filesystem::remove(db_path_);
+        std::filesystem::remove(wal_path_);
     }
 };
 
 TEST_F(HelixDBAcidTest, TestAtomicityAndDurability) {
     {
-        storage::Pager pager(db_path);
+        storage::Pager pager(dbPath());
         bplustree::BPlusTree tree(pager);
 
         tree.insert(10, 1000);
@@ -39,10 +42,10 @@ TEST_F(HelixDBAcidTest, TestAtomicityAndDurability) {
     }
 
     {
-        storage::Pager pager(db_path);
+        storage::Pager pager(dbPath());
         bplustree::BPlusTree tree(pager);
 
-        uint32_t value;
+        uint32_t value = 0;
         EXPECT_TRUE(tree.find(10, value));
         EXPECT_EQ(value, 1000);
         EXPECT_TRUE(tree.find(20, value));
@@ -51,7 +54,7 @@ TEST_F(HelixDBAcidTest, TestAtomicityAndDurability) {
 }
 
 TEST_F(HelixDBAcidTest, TestStructuralConsistency) {
-    storage::Pager pager(db_path);
+    storage::Pager pager(dbPath());
     bplustree::BPlusTree tree(pager);
 
     std::vector<uint64_t> keys;
@@ -59,12 +62,12 @@ TEST_F(HelixDBAcidTest, TestStructuralConsistency) {
         keys.push_back(i);
     }
     
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(keys.begin(), keys.end(), g);
+    std::random_device randDevice;
+    std::mt19937 generator(randDevice());
+    std::shuffle(keys.begin(), keys.end(), generator);
 
-    for (uint64_t k : keys) {
-        tree.insert(k, static_cast<uint32_t>(k * 10));
+    for (uint64_t keyVal : keys) {
+        tree.insert(keyVal, static_cast<uint32_t>(keyVal * 10));
     }
 
     auto cursor = tree.begin();
@@ -84,7 +87,7 @@ TEST_F(HelixDBAcidTest, TestStructuralConsistency) {
 }
 
 TEST_F(HelixDBAcidTest, TestBufferPoolIsolation) {
-    storage::Pager pager(db_path);
+    storage::Pager pager(dbPath());
     bplustree::BPlusTree tree(pager);
 
     tree.insert(50, 500);
@@ -98,18 +101,18 @@ TEST_F(HelixDBAcidTest, TestBufferPoolIsolation) {
 }
 
 TEST_F(HelixDBAcidTest, TestSpaceManagementConsistency) {
-    storage::Pager pager(db_path);
+    storage::Pager pager(dbPath());
     
-    uint32_t p1 = pager.allocatePage();
-    uint32_t p2 = pager.allocatePage();
+    uint32_t pageId1 = pager.allocatePage();
+    uint32_t pageId2 = pager.allocatePage();
     
-    pager.freePage(p1);
+    pager.freePage(pageId1);
     
-    uint32_t p3 = pager.allocatePage();
-    EXPECT_EQ(p1, p3);
+    uint32_t pageId3 = pager.allocatePage();
+    EXPECT_EQ(pageId1, pageId3);
 }
 
-int main(int argc, char **argv) {
+auto main(int argc, char **argv) -> int {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
 }
