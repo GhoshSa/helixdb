@@ -1,0 +1,61 @@
+name: HelixDB Tests CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.os }} / ${{ matrix.compiler }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        compiler: [gcc, clang]
+        exclude:
+          - os: windows-latest
+            compiler: gcc
+          - os: macos-latest
+            compiler: gcc
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Install Dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake g++ libgtest-dev clang-tidy
+
+    - name: Install Dependencies (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install cmake googletest
+
+    - name: Install Dependencies (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        vcpkg install gtest:x64-windows
+        echo "CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
+
+    - name: Configure CMake
+      run: >
+        cmake -S . -B build 
+        -DCMAKE_BUILD_TYPE=Debug 
+        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+        ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}', env.CMAKE_TOOLCHAIN_FILE) || '' }}
+
+    - name: Build
+      run: cmake --build build --config Debug
+
+    - name: Run Clang-Tidy (Linux Only)
+      if: runner.os == 'Linux'
+      run: |
+        run-clang-tidy -p build "src/.*\.cpp"
+
+    - name: Run Tests
+      working-directory: build
+      run: ctest -C Debug --output-on-failure
