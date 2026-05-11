@@ -51,14 +51,16 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         vcpkg install gtest:x64-windows
-        echo "CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
-
+    
     - name: Configure CMake
-      run: >
-        cmake -S . -B build 
-        -DCMAKE_BUILD_TYPE=Debug 
-        -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-        ${{ runner.os == 'Windows' && format('-DCMAKE_TOOLCHAIN_FILE={0}', env.CMAKE_TOOLCHAIN_FILE) || '' }}
+      shell: bash
+      run: |
+        CMAKE_FLAGS="-DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+        if [[ "${{ runner.os }}" == "Windows" ]]; then
+          # Pass the toolchain file and specify the x64-windows triplet to match the installed package
+          CMAKE_FLAGS="$CMAKE_FLAGS -DCMAKE_TOOLCHAIN_FILE=$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows"
+        fi
+        cmake -S . -B build $CMAKE_FLAGS
 
     - name: Build
       run: cmake --build build --config Debug

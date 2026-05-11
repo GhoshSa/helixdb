@@ -54,9 +54,7 @@ namespace helixdb::bplustree {
         auto* next = reinterpret_cast<uint32_t*>(hdr + 1); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         auto* keys = reinterpret_cast<uint64_t*>(next + 1); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
-        uint32_t max_keys = (storage::PAGE_SIZE - sizeof(BPlusTree::NodeHeader) - sizeof(uint32_t)) / (sizeof(uint64_t) + sizeof(uint32_t));
-
-        auto* values = reinterpret_cast<uint32_t*>(keys + max_keys); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        auto* values = reinterpret_cast<uint32_t*>(keys + BPlusTree::leafCapacity()); // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         return values[index_]; // NOLINT(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }

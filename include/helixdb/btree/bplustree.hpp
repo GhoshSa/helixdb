@@ -31,6 +31,8 @@ namespace helixdb::bplustree {
     
         [[nodiscard]] static auto leafMaxKeys() -> uint32_t;
         [[nodiscard]] static auto internalMaxKeys() -> uint32_t;
+        [[nodiscard]] static auto leafCapacity() -> uint32_t;
+        [[nodiscard]] static auto internalCapacity() -> uint32_t;
 
         void initLeaf(uint32_t pageid);
         void initInternal(uint32_t pageid);
