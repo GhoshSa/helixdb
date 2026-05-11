@@ -10,16 +10,23 @@ namespace helixdb::storage {
         ~BlockDevice();
 
         BlockDevice(const BlockDevice&) = delete;
-        BlockDevice& operator = (const BlockDevice&) = delete;
+        auto operator = (const BlockDevice&) -> BlockDevice& = delete;
 
-        void read(uint64_t block_id, void* buffer);
-        void write(uint64_t block_id, const void* buffer);
+        BlockDevice(BlockDevice&& other) noexcept;
+        auto operator = (BlockDevice&& other) noexcept -> BlockDevice&;
 
-        void flush();
+        void read(uint64_t block_id, void* buffer) const;
+        void write(uint64_t block_id, const void* buffer) const;
 
-        uint64_t block_count() const;
+        void flush() const;
+
+        [[nodiscard]] auto blockCount() const -> uint64_t;
     
     private:
+    #ifdef _WIN32
+        void* handle_;
+    #else
         int fd_;
+    #endif
     };
 }

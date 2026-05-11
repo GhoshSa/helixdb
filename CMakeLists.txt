@@ -13,11 +13,16 @@ set(STORAGE_SOURCES src/storage/block_device.cpp src/storage/pager.cpp)
 
 set(WAL_SOURCES src/wal/wal_manager.cpp)
 
-set(BTREE_SOURCES src/btree/bplushtree.cpp src/btree/btree_cursor.cpp)
+set(BTREE_SOURCES src/btree/bplustree.cpp src/btree/btree_cursor.cpp)
 
 add_library(helixdb ${STORAGE_SOURCES} ${WAL_SOURCES} ${BTREE_SOURCES})
 
 target_include_directories(helixdb PUBLIC include)
+
+# find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+# if (CLANG_TIDY_EXE)
+#     set(CMAKE_CXX_CLANG_TIDY "${CLANG_TIDY_EXE}")
+# endif()
 
 add_executable(helixdb_main main.cpp)
 

@@ -10,25 +10,28 @@ namespace helixdb::storage {
     class Page {
     public:
         explicit Page(uint32_t page_id) : page_id_(page_id) {}
-
+        ~Page() = default;
+        
         Page(const Page&) = delete;
-        Page& operator = (const Page&) = delete;
+        auto operator = (const Page&) -> Page& = delete;
 
-        uint32_t id() const noexcept { return page_id_; }
+        Page(Page&&) = delete;
+        auto operator = (Page&&) -> Page& = delete;
 
-        std::byte* data() noexcept { return data_.data(); }
+        [[nodiscard]] auto id() const noexcept -> uint32_t { return page_id_; }
 
-        bool is_dirty() const noexcept { return dirty_; }
+        auto data() noexcept -> std::byte* { return data_.data(); }
+
+        [[nodiscard]] auto isDirty() const noexcept -> bool { return dirty_; }
     
     private:
         uint32_t page_id_;
         std::array<std::byte, PAGE_SIZE> data_ {};
         bool dirty_ = false;
-    
-    private:
+        
         friend class Pager;
         
-        void mark_dirty() noexcept { dirty_ = true; }
-        void clear_dirty() noexcept { dirty_ = false; }
+        void markDirty() noexcept { dirty_ = true; }
+        void clearDirty() noexcept { dirty_ = false; }
     };
 }

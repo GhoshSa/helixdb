@@ -2,18 +2,18 @@
 #include <string>
 #include <iomanip>
 #include "helixdb/storage/pager.hpp"
-#include "helixdb/btree/bplushtree.hpp"
+#include "helixdb/btree/bplustree.hpp"
 
 using namespace helixdb;
 
 void print_banner() {
     std::cout << R"(
-  _    _      _       ____   ____  
- | |  | |    | |     |  __ \|  _  \
- | |__| | ___| |__  _| |  | | |  ) )
- |  __  |/ _ \ |\ \/ / |  | | |  < 
- | |  | |  __/ | >  <| |__| | |_ ) )
- |_|  |_|\___|_|/_/\_\_____/|_____/ 
+  _    _      _         ____   ____  
+ | |  | |    | |()     |  __ \|  _  \
+ | |__| | ___| |_ __  _| |  | | |  ) )
+ |  __  |/ _ \ | |\ \/ / |  | | |  < 
+ | |  | |  __/ | | >  <| |__| | |_ ) )
+ |_|  |_|\___|_|_|/_/\_\_____/|_____/ 
     )" << std::endl;
     std::cout << " HelixDB Embedded Engine | v0.1.0-alpha" << std::endl;
     std::cout << " Type 'help' for commands, 'exit' to quit.\n" << std::endl;
@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     
     try {
         storage::Pager pager(db_file);
-        bplushtree::BPlushTree tree(pager);
+        bplustree::BPlusTree tree(pager);
 
         std::cout << "Connected to: " << db_file << "\n" << std::endl;
 
@@ -67,8 +67,8 @@ int main(int argc, char* argv[]) {
                 }
             } else if (cmd == "stats") {
                 std::cout << "--- Metadata ---\n"
-                          << "Root Page: " << pager.root_page_id() << "\n"
-                          << "Page Size: " << storage::PAGE_SIZE << " bytes[cite: 5]\n"
+                          << "Root Page: " << pager.rootPageId() << "\n"
+                          << "Page Size: " << storage::PAGE_SIZE << " bytes\n"
                           << "----------------" << std::endl;
             } else if (cmd == "help") {
                 print_help();

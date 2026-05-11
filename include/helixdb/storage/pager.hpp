@@ -15,18 +15,24 @@ namespace helixdb::storage {
         explicit Pager(const std::string& path);
         ~Pager();
 
-        Page& get_page(uint32_t page_id);
+        Pager(const Pager&) = delete;
+        auto operator=(const Pager&) -> Pager& = delete;
 
-        uint32_t allocate_page();
-        void free_page(uint32_t page_id);
+        Pager(Pager&&) = delete;
+        auto operator=(Pager&&) -> Pager& = delete;
 
-        void mark_page_dirty(uint32_t page_id);
+        auto getPage(uint32_t page_id) -> Page&;
 
-        void flush_page(uint32_t page_id);
-        void flush_all();
+        auto allocatePage() -> uint32_t;
+        void freePage(uint32_t page_id);
 
-        uint32_t root_page_id() const;
-        void set_root_page(uint32_t id);
+        void markPageDirty(uint32_t page_id);
+
+        void flushPage(uint32_t page_id);
+        void flushAll();
+        
+        [[nodiscard]] auto rootPageId() const -> uint32_t;
+        void setRootPage(uint32_t page_id);
     
     private:
         BlockDevice device_;
@@ -35,6 +41,6 @@ namespace helixdb::storage {
         std::unordered_map<uint32_t, std::unique_ptr<Page>> cache_;
         uint32_t page_count_;
 
-        void load_page(uint32_t page_id);
+        auto loadPage(uint32_t page_id) -> Page&;
     };
 }

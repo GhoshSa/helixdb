@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #include "helixdb/storage/pager.hpp"
-#include "helixdb/btree/bplushtree.hpp"
+#include "helixdb/btree/bplustree.hpp"
 #include "helixdb/btree/btree_cursor.hpp"
 #include <random>
 
@@ -32,7 +32,7 @@ protected:
 TEST_F(HelixDBAcidTest, TestAtomicityAndDurability) {
     {
         storage::Pager pager(db_path);
-        bplushtree::BPlushTree tree(pager);
+        bplustree::BPlusTree tree(pager);
 
         tree.insert(10, 1000);
         tree.insert(20, 2000);
@@ -40,7 +40,7 @@ TEST_F(HelixDBAcidTest, TestAtomicityAndDurability) {
 
     {
         storage::Pager pager(db_path);
-        bplushtree::BPlushTree tree(pager);
+        bplustree::BPlusTree tree(pager);
 
         uint32_t value;
         EXPECT_TRUE(tree.find(10, value));
@@ -52,7 +52,7 @@ TEST_F(HelixDBAcidTest, TestAtomicityAndDurability) {
 
 TEST_F(HelixDBAcidTest, TestStructuralConsistency) {
     storage::Pager pager(db_path);
-    bplushtree::BPlushTree tree(pager);
+    bplustree::BPlusTree tree(pager);
 
     std::vector<uint64_t> keys;
     for (uint64_t i = 1; i <= 200; ++i) {
@@ -85,11 +85,11 @@ TEST_F(HelixDBAcidTest, TestStructuralConsistency) {
 
 TEST_F(HelixDBAcidTest, TestBufferPoolIsolation) {
     storage::Pager pager(db_path);
-    bplushtree::BPlushTree tree(pager);
+    bplustree::BPlusTree tree(pager);
 
     tree.insert(50, 500);
 
-    auto cursor = tree.lower_bound(50);
+    auto cursor = tree.lowerBound(50);
     EXPECT_EQ(cursor.value(), 500);
 
     tree.insert(50, 999);
@@ -100,12 +100,12 @@ TEST_F(HelixDBAcidTest, TestBufferPoolIsolation) {
 TEST_F(HelixDBAcidTest, TestSpaceManagementConsistency) {
     storage::Pager pager(db_path);
     
-    uint32_t p1 = pager.allocate_page();
-    uint32_t p2 = pager.allocate_page();
+    uint32_t p1 = pager.allocatePage();
+    uint32_t p2 = pager.allocatePage();
     
-    pager.free_page(p1);
+    pager.freePage(p1);
     
-    uint32_t p3 = pager.allocate_page();
+    uint32_t p3 = pager.allocatePage();
     EXPECT_EQ(p1, p3);
 }
 

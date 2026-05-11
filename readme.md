@@ -44,6 +44,10 @@ cmake --build build
 ```bash
 ./build/helixdb_main
 ```
+or
+```bash
+./build/helixdb_main <filename.db>
+```
 
 ---
 

@@ -4,7 +4,7 @@
 
 namespace helixdb::wal {
     struct WalRecordHeader {
-        uint32_t page_id;
-        uint32_t page_size;
+        uint32_t page_id_;
+        uint32_t page_size_;
     };
 }
